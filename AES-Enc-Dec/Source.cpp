@@ -4,11 +4,41 @@
 #include <vector>
 #include <map>
 
-
 using namespace std;
+using Word = vector<unsigned char>;
+
+
+template <class T>
+ostream& operator<<(ostream& os, const vector<T>& vec)
+{
+	for (size_t i = 0; i < vec.size(); i++)
+	{
+		os << hex << static_cast<int>(vec[i]) << " ";
+	}
+	os << "\n";
+
+	return os;
+}
+
+Word operator^ (const Word& w1, const Word& w2)
+{
+	Word temp;
+	if (w1.size() != w2.size())
+		return temp;
+	for (size_t i = 0; i < w1.size(); i++)
+	{
+		//cout << "w1 = " << static_cast<int>(w1[i]) << " w2 = " << static_cast<int>(w2[i]) << "\n";
+		temp.push_back(w1[i] ^ w2[i]);
+	}
+	return temp;
+}
 
 const int BUFF_SIZE = 16;
-const map<int, int> subBytes{
+const int NB = 4;
+int NR;
+int NK;		//no. of columns of the key. The column consists of 4 bytes
+
+const map<unsigned char, unsigned char> subBytes{
 	{0x0,0x63}	,{0x1, 0x7c}	,{0x2, 0x77},{0x3, 0x7b},{0x4, 0xf2},{0x5, 0x6b},{0x6, 0x6f},{0x7, 0xc5},
 	{0x8, 0x30}	,{0x9, 0x01}	,{0xa, 0x67},{0xb, 0x2b},{0xc, 0xfe},{0xd, 0xd7},{0xe, 0xab},{0xf, 0x76},
 	{0x10, 0xca},{0x11, 0x82}	,{0x12, 0xc9},{0x13, 0x7d},{0x14, 0xfa},{0x15, 0x59},{0x16, 0x47},{0x17, 0xf0},
@@ -43,18 +73,27 @@ const map<int, int> subBytes{
 	{0xf8, 0x41},{0xf9, 0x99}	,{0xfa, 0x2d},{0xfb, 0x0f},{0xfc, 0xb0},{0xfd, 0x54},{0xfe, 0xbb},{0xff, 0x16}
 };
 
+//The first entry in the Rcon array is useless since the indexing of rcon starts at 1 not 0
+const unsigned char Rcon [] = {0x01, 0x01,0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
+
 inline string readFileName();
 
 inline void encryption();
 inline void decryption();
 
 inline void cipherRound();
+inline vector<Word> keyExpansion(vector<unsigned char> key);
+inline void rotateWord(Word& word);
+inline void subWord(Word& word);
 
 //What will happen if the file size is smaller than 128 bits ??
 
 int main()
 {
 	//Ask the user whether they want to encrypt or decrypt
+
+	Word key{ 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+	keyExpansion(key);
 
 	int encDecChoice;
 	cout << "Enter 1 to ecrypt\n";
@@ -104,7 +143,7 @@ inline void encryption()
 	int keyChoice;
 
 	//The key that will be used in encryption
-	vector<char> key;
+	vector<unsigned char> key;
 	cout << "Enter 1 to generate a key randomly\n";
 	cout << "Enter 2 to enter a key manually\n";
 	cin >> keyChoice;
@@ -187,4 +226,108 @@ inline void decryption()
 inline void cipherRound()
 {
 
+}
+
+inline vector<Word> keyExpansion(vector<unsigned char> key)
+{
+	cout << "Entered keyExpansion\n";
+	//w: key schedule
+	//the first 4 words of the key schedule is the the first 4 words of the key
+	//for 16 byte key, afterwards, w[i] = w[i-1] ^ w[i-4]
+	//if i is a multiple of 4, w[i] = g(w[i-1]) ^ w[i-4]
+	//function g() is composed of 3 steps
+	//1- rotate left (e.g. b0,b1,b2,b3 --> b1,b2,b3,b0)
+	//2- perform SubByte on each byte
+	//3- XOR with Rcon[j]
+
+	vector<Word> w;
+	int keySize = key.size();
+	NK = keySize / 4;
+
+	cout << "NK = " << NK << "\n";
+	if (keySize == 16)
+	{
+		NR = 10;
+	}
+	else if (keySize == 24)
+	{
+		NR = 12;
+	}
+	else if (keySize == 32)
+	{
+		NR = 14;
+	}
+	else
+	{
+		cout << "Error. Wrong key size\n";
+	}
+
+	w.resize(NB * (NR + 1));
+
+	for (size_t i = 0; i < NK; i++)
+	{
+		//take 4 bytes and make a word
+		w[i] = { key[4*i] , key[4*i+1], key[4*i+2], key[4*i+3]};
+	}
+
+	for (size_t i = NK; i < NB*(NR+1); i++)
+	{
+		Word temp = w[i - 1];
+
+		cout << "temp = " << temp ;
+		
+
+		if (i % NK == 0)
+		{
+			//1- rotate left (e.g. b0,b1,b2,b3 --> b1,b2,b3,b0)
+			rotateWord(temp);
+			cout << "After RotWord = " << temp;
+			//2- perform SubByte on each byte
+			subWord(temp);
+			cout << "After subWord = " << temp;
+			//3- XOR with Rcon[j]
+			//cout << " i / NK = " << i / NK << "\n";
+			temp = temp ^ Word{ Rcon[i / NK], 0x0,0x0,0x0 };
+			cout << "After Rcon XOR = " << temp;
+
+
+		}
+		else if (NK > 6 && (i % NK == 4))
+			//Special case for NK = 8
+			// if NK == 8 && i-4 is a multiple of NK
+		{
+			subWord(temp);
+		}
+
+		w[i] = w[i - NK] ^ temp;
+
+		if (w[i].size() == 0)
+		{
+			cout << "Error. XOR operands have unequal sizes\n";
+		}
+
+		//TESTING
+		cout << "w[" << i << "] = " << hex << w[i] << "\n";
+	}
+
+	return w;
+}
+
+inline void rotateWord(Word& word) // TESTED
+{
+
+	unsigned char temp = word[0];
+	word.erase(word.begin());
+	word.push_back(temp);
+	
+
+}
+
+inline void subWord(Word& word) //TESTED
+{
+	for (int i = 0; i < word.size(); i++)
+	{
+		//cout << "Replacing " << hex << static_cast<int>(word[i]) << " with " << hex << static_cast<int>(subBytes.at(word[i])) << "\n";;
+		word[i] = subBytes.at(word[i]);
+	}
 }
