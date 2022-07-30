@@ -85,18 +85,20 @@ inline void cipherRound();
 inline vector<Word> keyExpansion(vector<unsigned char> key);
 inline void rotateWord(Word& word);
 inline void subWord(Word& word);
+inline void shiftRows(vector<Word>& words);
 
 //What will happen if the file size is smaller than 128 bits ??
+//Padding will be used
 
 int main()
 {
 	//Ask the user whether they want to encrypt or decrypt
 
-	Word key{ 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+	Word key{0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4};
 	keyExpansion(key);
 
 	int encDecChoice;
-	cout << "Enter 1 to ecrypt\n";
+	cout << "Enter 1 to encrypt\n";
 	cout << "Enter 2 to decrypt\n";
 	cin >> encDecChoice;
 
@@ -230,7 +232,7 @@ inline void cipherRound()
 
 inline vector<Word> keyExpansion(vector<unsigned char> key)
 {
-	cout << "Entered keyExpansion\n";
+	//cout << "Entered keyExpansion\n";
 	//w: key schedule
 	//the first 4 words of the key schedule is the the first 4 words of the key
 	//for 16 byte key, afterwards, w[i] = w[i-1] ^ w[i-4]
@@ -274,21 +276,21 @@ inline vector<Word> keyExpansion(vector<unsigned char> key)
 	{
 		Word temp = w[i - 1];
 
-		cout << "temp = " << temp ;
+		//cout << "temp = " << temp ;
 		
 
 		if (i % NK == 0)
 		{
 			//1- rotate left (e.g. b0,b1,b2,b3 --> b1,b2,b3,b0)
 			rotateWord(temp);
-			cout << "After RotWord = " << temp;
+			//cout << "After RotWord = " << temp;
 			//2- perform SubByte on each byte
 			subWord(temp);
-			cout << "After subWord = " << temp;
+			//cout << "After subWord = " << temp;
 			//3- XOR with Rcon[j]
 			//cout << " i / NK = " << i / NK << "\n";
 			temp = temp ^ Word{ Rcon[i / NK], 0x0,0x0,0x0 };
-			cout << "After Rcon XOR = " << temp;
+			//cout << "After Rcon XOR = " << temp;
 
 
 		}
@@ -307,7 +309,7 @@ inline vector<Word> keyExpansion(vector<unsigned char> key)
 		}
 
 		//TESTING
-		cout << "w[" << i << "] = " << hex << w[i] << "\n";
+		//cout << "w[" << i << "] = " << hex << w[i] << "\n";
 	}
 
 	return w;
@@ -329,5 +331,18 @@ inline void subWord(Word& word) //TESTED
 	{
 		//cout << "Replacing " << hex << static_cast<int>(word[i]) << " with " << hex << static_cast<int>(subBytes.at(word[i])) << "\n";;
 		word[i] = subBytes.at(word[i]);
+	}
+}
+
+inline void shiftRows( vector<Word>& words)		//TESTED
+{
+	for (size_t i = 1; i < 4; i++)
+	{
+		for (size_t j = 0; j < i; j++)
+		{
+			unsigned char temp = words[i][0];
+			words[i].erase(words[i].begin());
+			words[i].push_back(temp);
+		}
 	}
 }
