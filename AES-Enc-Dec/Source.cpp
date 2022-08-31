@@ -222,8 +222,10 @@ inline void cipherRound();
 inline vector<Word> keyExpansion(vector<unsigned char> key);
 inline void rotateWord(Word& word);
 inline void subWord(Word& word);
+inline void subState(vector<Word>& state);
 inline void shiftRows(vector<Word>& words);
 inline void mixColumns(vector<Word>& words);
+inline void addRoundKey(vector<Word>& words, const vector<Word>& keys);
 
 //What will happen if the file size is smaller than 128 bits ??
 //Padding will be used
@@ -237,11 +239,29 @@ public:
 		keyExpTest();
 		rotateWordTest();
 		mixColTest();
+		addRoundKeyTest();
+		subStateTest();
 
 		cerr << "Ended testing\n";
 	};
 
 private:
+
+	void printResult(string testName, const vector<Word>& testCase, const vector<Word>& result, const vector<Word>& testOutput)
+	{
+		if (testOutput != result)
+		{
+			cerr << testName << " not working\n";
+			cerr << "Test vector is " << testCase << "\n";
+			cerr << "right result is " << result << "\n";
+			cerr << "actual result is " << testOutput << "\n";
+		}
+		else
+		{
+			cerr << "Passed\n";
+		}
+	}
+
 	void keyExpTest()
 	{
 
@@ -265,6 +285,7 @@ private:
 			{0x54,0x99,0x32,0xd1},{0xf0,0x85,0x57,0x68},{0x10,0x93,0xed,0x9c},{0xbe,0x2c,0x97,0x4e},
 			{0x13,0x11,0x1d,0x7f},{0xe3,0x94,0x4a,0x17},{0xf3,0x07,0xa7,0x8b},{0x4d,0x2b,0x30,0xc5}
 		};																	  
+
 
 		if (result128 != actual128)
 		{
@@ -354,44 +375,6 @@ private:
 
 	}
 
-	void mixColTest()
-	{
-		vector<Word> test = {
-		{0xd4,0xe0,0xb8,0x1e},
-		{0xbf,0xb4,0x41,0x27},
-		{0x5d,0x52,0x11,0x98},
-		{0x30,0xae,0xf1,0xe5}
-		};
-
-		vector<Word> testOld = {
-		{0xd4,0xe0,0xb8,0x1e},
-		{0xbf,0xb4,0x41,0x27},
-		{0x5d,0x52,0x11,0x98},
-		{0x30,0xae,0xf1,0xe5}
-		};
-
-		mixColumns(test);
-
-		vector<Word> result = {
-			{0x4, 0xe0, 0x48,0x28 },
-			{0x66, 0xcb, 0xf8,0x06 },
-			{0x81, 0x19, 0xd3,0x26 },
-			{0xe5, 0x9a, 0x7a,0x4c }
-		};
-
-		if (test != result)
-		{
-			cerr << "Mix columns is Not working !!\n";
-			cerr << "Test vector is " << testOld << "\n";
-			cerr << "right result is " << result << "\n";
-			cerr << "actual result is " << test << "\n";
-		}
-		else
-		{
-			cerr << "Passed\n";
-		}
-	}
-
 	void rotateWordTest()
 	{
 
@@ -417,17 +400,105 @@ private:
 			{0x30,0xae,0xf1,0xe5}
 		};
 
-		if (test != result)
-		{
-			cerr << "Shift rows not working\n";
-			cerr << "Test vector is " << testOld << "\n";
-			cerr << "right result is " << result << "\n";
-			cerr << "actual result is " << test << "\n";
-		}
-		else
-		{
-			cerr << "Passed\n";
-		}
+		printResult("Rotate Word ( Shift Rows )", testOld, result, test);
+
+		
+	}
+
+	void mixColTest()
+	{
+		vector<Word> test = {
+		{0xd4,0xe0,0xb8,0x1e},
+		{0xbf,0xb4,0x41,0x27},
+		{0x5d,0x52,0x11,0x98},
+		{0x30,0xae,0xf1,0xe5}
+		};
+
+		vector<Word> testOld = {
+		{0xd4,0xe0,0xb8,0x1e},
+		{0xbf,0xb4,0x41,0x27},
+		{0x5d,0x52,0x11,0x98},
+		{0x30,0xae,0xf1,0xe5}
+		};
+
+		mixColumns(test);
+
+		vector<Word> result = {
+			{0x4, 0xe0, 0x48,0x28 },
+			{0x66, 0xcb, 0xf8,0x06 },
+			{0x81, 0x19, 0xd3,0x26 },
+			{0xe5, 0x9a, 0x7a,0x4c }
+		};
+
+		printResult("Mix Columns", testOld, result, test);
+
+	}
+
+	void addRoundKeyTest()
+	{
+		vector<Word> test = {
+			{0x04, 0xe0, 0x48, 0x28},
+			{0x66, 0xcb, 0xf8, 0x06},
+			{0x81, 0x19, 0xd3, 0x26},
+			{0xe5, 0x9a, 0x7a, 0x4c},
+		};
+
+		vector<Word> testOld = {
+			{0x04, 0xe0, 0x48, 0x28},
+			{0x66, 0xcb, 0xf8, 0x06},
+			{0x81, 0x19, 0xd3, 0x26},
+			{0xe5, 0x9a, 0x7a, 0x4c},
+		};
+
+		vector<Word> key = {
+			{0xa0, 0x88, 0x23, 0x2a},
+			{0xfa, 0x54, 0xa3, 0x6c},
+			{0xfe, 0x2c, 0x39, 0x76},
+			{0x17, 0xb1, 0x39, 0x05},
+		};
+
+		vector<Word> result = {
+			{0xa4, 0x68, 0x6b, 0x02},
+			{0x9c, 0x9f, 0x5b, 0x6a},
+			{0x7f, 0x35, 0xea, 0x50},
+			{0xf2, 0x2b, 0x43, 0x49},
+		};
+
+		vector<Word> actual; 
+		addRoundKey(test, key);
+
+		printResult("Add round key", testOld, result, test);
+
+	}
+
+	void subStateTest()
+	{
+		vector<Word> test = {
+			{0xaa, 0x61, 0x82, 0x68},
+			{0x8f, 0xdd, 0xd2, 0x32},
+			{0x5f, 0xe3, 0x4a, 0x46},
+			{0x03, 0xef, 0xd2, 0x9a},
+		};
+
+		vector<Word> testOld = {
+			{0xaa, 0x61, 0x82, 0x68},
+			{0x8f, 0xdd, 0xd2, 0x32},
+			{0x5f, 0xe3, 0x4a, 0x46},
+			{0x03, 0xef, 0xd2, 0x9a},
+		};
+
+		vector<Word> result = {
+			{0xac, 0xef, 0x13, 0x45},
+			{0x73, 0xc1, 0xb5, 0x23},
+			{0xcf, 0x11, 0xd6, 0x5a},
+			{0x7b, 0xdf, 0xb5, 0xb8},
+		};
+
+		subState(test);
+
+
+		printResult("SubState", testOld, result, test);
+
 	}
 };
 
@@ -570,10 +641,7 @@ inline void decryption()
 {
 }
 
-inline void cipherRound()
-{
-	
-}
+
 
 inline vector<Word> keyExpansion(vector<unsigned char> key)
 {
@@ -679,9 +747,17 @@ inline void subWord(Word& word) //TESTED
 	}
 }
 
+inline void subState(vector<Word>& state)
+{
+	for (size_t i = 0; i < COLS; i++)
+	{
+		subWord(state[i]);
+	}
+}
+
 inline void shiftRows( vector<Word>& words)		//TESTED
 {
-	for (size_t i = 1; i < 4; i++)
+	for (size_t i = 1; i < COLS; i++)
 	{
 		for (size_t j = 0; j < i; j++)
 		{
@@ -706,4 +782,19 @@ inline void mixColumns(vector<Word>& words)
 		words[2][i] = (oldWord[0])						^ (oldWord[1])					^ (galoisMulBy2[oldWord[2]])	^ (galoisMulBy3[oldWord[3]]);
 		words[3][i] = (galoisMulBy3[oldWord[0]])		^ (oldWord[1])					^ (oldWord[2])					^ (galoisMulBy2[oldWord[3]]);
 	}
+}
+
+inline void addRoundKey(vector<Word>& words, const vector<Word>& keys)
+{
+	for (size_t i = 0; i < COLS; i++)
+	{
+		words[i] = words[i] ^ keys[i];
+	}
+}
+
+inline vector<Word> cipherRound(vector<Word>& state, const vector<Word>& key)
+{
+	//subWord(state);
+	//shiftRows(state);
+
 }
