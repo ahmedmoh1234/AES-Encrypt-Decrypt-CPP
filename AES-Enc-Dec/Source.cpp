@@ -580,6 +580,59 @@ inline void encryption()
 		//2- 192-bit key
 		//3- 256-bit key
 
+		int keySizeChoice;
+		cout << "Enter 1, 2 or 3 for key size 16, 24 or 32 characters : ";
+		cin >> keySizeChoice;
+
+		while (keySizeChoice != 1 && keySizeChoice != 2 && keySizeChoice != 3)
+		{
+			cout << "Please enter a correct key choice\n";
+			cout << "Enter 1, 2 or 3 for key size 16, 24 or 32 characters : ";
+			cin >> keySizeChoice;
+		}
+
+		// Initializing a random seed
+		srand(time( NULL));
+
+		if (keySizeChoice == 1)
+		{
+			for (size_t i = 0; i < 16; i++)
+			{
+				int randNum = rand() % 256;
+				key.push_back(randNum);
+			}
+
+		}
+		else if (keySizeChoice == 2)
+		{
+			for (size_t i = 0; i < 24; i++)
+			{
+				int randNum = rand() % 256;
+				key.push_back(randNum);
+			}
+		}
+		else if (keySizeChoice == 3)
+		{
+			for (size_t i = 0; i < 32; i++)
+			{
+				int randNum = rand() % 256;
+				key.push_back(randNum);
+			}
+		}
+		else
+		{
+			cerr << "Wrong key size choice\n";
+		}
+
+		//print the randomly generated key
+		cout << "The generated key is : ";
+
+		for (int i = 0; i < key.size(); i++)
+		{
+			cout << static_cast<int>(key[i]) << " ";
+		}
+		cout << "\n";
+		cout << "SAVE THIS NUMBER AS IT IS VERY IMPORTANT FOR DECRYPTION!!!!!!\n";
 	}
 	else
 	{
@@ -589,7 +642,7 @@ inline void encryption()
 		//192 bits -> 24 characters
 		//256 bits -> 32 characters
 
-		//I did not use a hash function because I want to implement the standart algorithm so any AES decryptor can decrypt it.
+		//I did not use a hash function because I want to implement the standard algorithm so any AES decryptor can decrypt it.
 	}
 
 
